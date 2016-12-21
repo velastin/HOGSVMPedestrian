@@ -20,14 +20,22 @@ using namespace std;
 
 #define SVM_SUFFIX "-SVM.xml"
 #define DATA_SUFFIX "-DESC.dat"
-#define SVM_CPARAMETER 0.002  // Diego 0.02
+//#define SVM_CPARAMETER 0.002  // Diego 0.02  *** This is not needed
 
 // Undefine this for linear in the cmakelist file
 // #define TRAIN_SVM_RBF
 
 // Dimensions of normalised samples (for BOSS, data is already resized to this)
-#define WIDTH 64
-#define HEIGHT 128
+//#define WIDTH 64		*** not needed
+//#define HEIGHT 128
+
+// These are settings for the parameter search grid
+#define CGRID_START 0.000976563		// pow(2,-10)
+#define CGRID_END 16				// pow(2,4)
+#define CGRID_STEP 2				// pow(2,1)
+#define GGRID_START 0.000030518		// pow(2,-15)
+#define GGRID_END 8					// pow(2,3)
+#define GGRID_STEP 4				// pow(2,2)
 
 
 void displayUsage(){
@@ -55,8 +63,8 @@ int SVMTrain (DataDescriptors &data,
 	cout << "Will train with an RBF model\n";
 #endif
 
-	CvParamGrid CvParamGrid_C(pow(2.0,-5), pow(2.0,15), pow(2.0,2));
-	CvParamGrid CvParamGrid_gamma(pow(2.0,-15), pow(2.0,3), pow(2.0,2)); // if linear, it does not matter
+	CvParamGrid CvParamGrid_C(CGRID_START, CGRID_END, CGRID_STEP);
+	CvParamGrid CvParamGrid_gamma(GGRID_START, GGRID_END, GGRID_STEP); // if linear, it does not matter
 	if (!CvParamGrid_C.check() || !CvParamGrid_gamma.check()) {
     	cout<<"The grid is NOT VALID."<<endl;
 		return 1;
@@ -111,8 +119,13 @@ int SVMTrain (DataDescriptors &data,
 int main( int argc, char** argv ) {
 	char opt;
 	string data_path, svm_path;
-	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
+//	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing *** Not needed
 
+#ifdef TRAIN_SVM_RBF
+	hard_pause("I will be using SVM RBF");
+#else
+	hard_pause("I will be using SVM LINEAR");
+#endif
 
 	if(argc < 5){
 		cerr << "Missing arguments" << endl;

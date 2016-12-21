@@ -122,6 +122,11 @@ int main( int argc, char** argv ) {
 	string data_path, svm_path;
 //	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
 
+#ifdef TRAIN_SVM_RBF
+	hard_pause("I will be using SVM RBF");
+#else
+	hard_pause("I will be using SVM LINEAR");
+#endif
 
 	if(argc < 5){
 		cerr << "Missing arguments" << endl;

@@ -44,7 +44,7 @@ void ShowBar(int percentage,int sizeMax){
 void hard_pause(string msg)
 {
     std::string dummy;
-    std::cout << msg << "... ";
+    std::cout << msg << "... (press RETURN to continue)";
     std::getline(std::cin, dummy);
 }
 
@@ -53,6 +53,7 @@ void pause(string msg)
     std::string dummy;
     std::cout << msg << "... ";
 #ifdef ENABLEPAUSE
+	std::cout << "(press RETURN to continue)";
     std::getline(std::cin, dummy);
 #else
 	std::cout << endl;
