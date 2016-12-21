@@ -104,7 +104,7 @@ int saveDescriptors(vector<Descriptor> descriptorsPosImg, vector<Descriptor> des
 
 	// Do the positives
 	for(int i = 0; i < descriptorsPosImg.size(); i++){
-		data << "# " << descriptorsPosImg [i].baseName << endl;
+		// data << "# " << descriptorsPosImg [i].baseName << endl; // This should not have been here, it generates extra line!
 		data << "1 ";
 		for(int j=0; j < descriptorsPosImg [i].descrip.size(); j++){
 			data << descriptorsPosImg [i].descrip [j] << " ";
@@ -116,7 +116,7 @@ int saveDescriptors(vector<Descriptor> descriptorsPosImg, vector<Descriptor> des
 
 	// And now the negatives
 	for (int i = 0; i < descriptorsNegImg.size(); i++){
-		data << "# " << descriptorsNegImg [i].baseName << endl;
+		// data << "# " << descriptorsNegImg [i].baseName << endl; // See above
 		data << "-1 ";
 		for(int j=0; j < descriptorsNegImg [i].descrip.size(); j++){
 			data << descriptorsNegImg [i].descrip [j] << " ";

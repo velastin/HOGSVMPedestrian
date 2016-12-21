@@ -125,18 +125,16 @@ int getDataDescriptors(string descriptorsFile, DataDescriptors &data){
                 j++;
             }
         }
-
 /*
 		// to check that we have read things correctly
 		if (i==0) {
 			cout << allLabels.at<float>(i,0) << endl;
 			for (int k = 0; k < j; k++)
 				cout << allDescriptors.at<float>(i,k) << " ";
-			cout << endl;
+			cout << ":" << i << endl;
 			pause("that was the first descriptor");
 		}
 */
-
         ShowBar(i*100/(numDescrips-1),50);
 
         i++;  // for next line

@@ -25,14 +25,19 @@ using namespace std;
 //#define SVM_CPARAMETER 0.03125
 //#define SVM_GPARAMETER 0.03125
 
+#ifdef TRAIN_SVM_RBF
 // Obtained by TrainGrid for 64x128 RBF
 #define SVM_CPARAMETER 2.0
 #define SVM_GPARAMETER 0.125
+#else
+#define SVM_CPARAMETER 0.002		// see Miguel Jara's thesis, chapter 4, Fig. 4.1
+#define SVM_GPARAMETER 0.125		// this should not matter
+#endif
 
 
 // Dimentions of normalised samples (for BOSS, data is already resized to this)
-#define WIDTH 64
-#define HEIGHT 128
+// #define WIDTH 64
+// #define HEIGHT 128
 
 
 void displayUsage(){
@@ -115,7 +120,7 @@ int SVMTrain (DataDescriptors &data,
 int main( int argc, char** argv ) {
 	char opt;
 	string data_path, svm_path;
-	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
+//	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
 
 
 	if(argc < 5){
