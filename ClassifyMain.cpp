@@ -43,8 +43,12 @@ using namespace std;
 #define SVM_SUFFIX "-SVM.xml"
 
 // Dimensions of normalised samples (for BOSS, data is already resized to this)
-#define WIDTH 64
-#define HEIGHT 128
+//#define WIDTH 64
+//#define HEIGHT 128
+
+// For PAMELA-UANDES
+#define WIDTH 56
+#define HEIGHT 56
 
 
 //******************* TMeanValues: to compute running averages **********
@@ -229,7 +233,7 @@ void displayUsage(){
 	cout << "-s path: path (no trailing /) to find SVM model files" << endl;  
 	cout << "-n path: path (no trailing /) to find negative samples" << endl;
 	cout << "-p path: path (no trailing /) to find positive samples" << endl;
-	cout << "-r path: path (no trailing /) where to save output results (text, metrics)\n";
+	cout << "-r file_name: where to save output results (text, metrics)\n";
 }
 
 // *********************************************************************
