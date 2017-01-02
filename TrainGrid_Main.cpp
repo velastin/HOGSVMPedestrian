@@ -30,9 +30,9 @@ using namespace std;
 //#define HEIGHT 128
 
 // These are settings for the parameter search grid
-#define CGRID_START 0.000976563		// pow(2,-10)
-#define CGRID_END 16				// pow(2,4)
-#define CGRID_STEP 2				// pow(2,1)
+#define CGRID_START 0.000003815		// pow(2,-18)
+#define CGRID_END 2				// pow(2,1)
+#define CGRID_STEP 2	
 #define GGRID_START 0.000030518		// pow(2,-15)
 #define GGRID_END 8					// pow(2,3)
 #define GGRID_STEP 4				// pow(2,2)
