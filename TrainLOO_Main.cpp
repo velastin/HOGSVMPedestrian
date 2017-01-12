@@ -30,7 +30,7 @@ using namespace std;
 #define SVM_CPARAMETER 2.0
 #define SVM_GPARAMETER 0.125
 #else
-#define SVM_CPARAMETER 3.815e-06 // 0.002		// see Miguel Jara's thesis, chapter 4, Fig. 4.1
+#define SVM_CPARAMETER 1E-15 // 0.002		// see Miguel Jara's thesis, chapter 4, Fig. 4.1
 #define SVM_GPARAMETER 0.125		// this should not matter
 #endif
 

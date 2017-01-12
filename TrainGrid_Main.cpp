@@ -30,9 +30,9 @@ using namespace std;
 //#define HEIGHT 128
 
 // These are settings for the parameter search grid
-#define CGRID_START 0.000003815		// pow(2,-18)
-#define CGRID_END 2				// pow(2,1)
-#define CGRID_STEP 2	
+#define CGRID_START 1E-15				// pow(2,-30)
+#define CGRID_END   1E-08				// pow(2,-20)
+#define CGRID_STEP 2				
 #define GGRID_START 0.000030518		// pow(2,-15)
 #define GGRID_END 8					// pow(2,3)
 #define GGRID_STEP 4				// pow(2,2)
@@ -64,6 +64,9 @@ int SVMTrain (DataDescriptors &data,
 #endif
 
 	CvParamGrid CvParamGrid_C(CGRID_START, CGRID_END, CGRID_STEP);
+	cout << "Grid Start " << CvParamGrid_C.min_val << " End " << CvParamGrid_C.max_val << " Step " << CvParamGrid_C.step << endl;
+	hard_pause("that is the C Grid");
+
 	CvParamGrid CvParamGrid_gamma(GGRID_START, GGRID_END, GGRID_STEP); // if linear, it does not matter
 	if (!CvParamGrid_C.check() || !CvParamGrid_gamma.check()) {
     	cout<<"The grid is NOT VALID."<<endl;
