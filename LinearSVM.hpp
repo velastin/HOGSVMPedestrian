@@ -23,6 +23,7 @@
 using namespace cv;
 using namespace std;
 
+// This is an inherited class from the standard SVM Class
 
 class LinearSVM : public CvSVM{
 

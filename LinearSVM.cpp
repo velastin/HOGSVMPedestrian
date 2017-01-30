@@ -1,3 +1,5 @@
+// Derived from an original by Miguel Angel Jara, Universidad de Santiago de Chile, 2015
+
 #include "LinearSVM.hpp"
 
 #include <opencv2/opencv.hpp>
@@ -7,6 +9,7 @@ using namespace cv;
 using namespace std;
 
 // SAV: I wonder why we need to do this?
+// This returns a set of support vectors that are apparently used by the OpenCV's hog detector
 vector<float> LinearSVM::getSupportVector() {
 
     int sv_count = get_support_vector_count();

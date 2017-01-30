@@ -12,6 +12,9 @@ BOSSHog::BOSSHog(Size win_size, Size block_size, Size block_stride, Size cell_si
 {
 }
 
+
+// Jan 2017: This is mainly historical with tests that were being done with the BOSS dataset
+
 // this is the support vector that was obtained by grid-training a linear SVM ((optimum C=0.03125) on 50% of the BOSS cam1 videos
 // Intersection=100%, ignore sub-classes (sit, sitting, standing)
 vector<float> BOSSHog::getBOSSPeopleDetector()

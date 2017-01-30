@@ -1,18 +1,16 @@
 // (c) S.A. Velastin 2016 (UC3M)
 // Derived from originals by Miguel Jara and Diego Gomez, USACH, 2015
 // This is run after TrainLOO
-// This takes a pre-trained SVM an a video and displays detection results
+// This takes one pre-trained SVM and a video and displays detection results
+// Mainly used for a quick check that detection works (or not!)
 
 #include <opencv2/opencv.hpp>
 #include <cstdio>
 #include <deque>
 #include <vector>
 #include <fstream>
-
 #include <sstream>
-
 #include <algorithm>
-
 #include <cmath>
 #include "tool.hpp"
 #include "LinearSVM.hpp"
@@ -28,14 +26,18 @@ using namespace std;
 //#define DATA_SUFFIX "-DESC.dat"
 
 // Dimentions of normalised samples (for BOSS, data is already resized to this)
-#define WIDTH 64
-#define HEIGHT 128
+// Jan 2017: adapted for UANDES dataset
+// TODO: make these command-line parameters
+#define WIDTH 56
+#define HEIGHT 56
 
 // ***************  This is the detector, callig OpenCV's HOG detector
-vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0){
-	vector <Rect> found;
-
-	// imageGray; // ***SAV: I am not sure what this is supposed to do!
+// hog:			has been previously setup with appropriate model and parameters
+// imagegray:	the input gray-level image
+// scale0:		this defines the range of scales in the detector e.g. 1.05
+vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0)
+{
+	vector <Rect> found;	// OpenCV's detector returns the results here
 
 	// and do the detection
 	cout << "Calling the detector\n";
@@ -43,7 +45,6 @@ vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0){
 	hog.detectMultiScale(imageGray, found, 0, Size(8,8), Size(0,0), scale0, 2);
 
 	// Here we could filter what has been found e.g. using size rules etc.
-
 	return found;
 }
 
@@ -54,7 +55,7 @@ vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0){
 // SVM_FullFile:	Full path of SVM model file
 // VideoFile:		Name to be used for the video window
 int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
-{	LinearSVM SVM;
+{	LinearSVM SVM;		// will hold the model
 	vector<float> support_vector;
 	
 	cout << "SVM model file on '" << SVM_FullFile << "'\n";
@@ -77,12 +78,13 @@ int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
 //	HOGDescriptor hog;
 	BOSSHog hog (Train_Size, block_size, block_stride, cell_size, nbins);
 
-	vector <float> s_vector = hog.getDefaultPeopleDetector();
+	// Mainly historical, we output different possible detector sizes on screen
+	vector <float> s_vector = hog.getDefaultPeopleDetector();	// OpenCV's default
 	cout << "size 64x128 default " << s_vector.size() << endl;
 	s_vector.clear();
 	s_vector = hog.getBOSSPeopleDetector();
-	cout << "size 64x128 BOSS " << s_vector.size() << endl;
-	cout << "size support " << support_vector.size() << endl;
+	cout << "size 64x128 BOSS " << s_vector.size() << endl;		// BOSS default
+	cout << "size support " << support_vector.size() << endl;	// the model we have read
 	pause ("press me");
 	
 	// This uses OpenCV's default detector (for 64x128)
@@ -90,12 +92,12 @@ int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
 	 //cout << "*** using default HOG detector 64x128 ****" << endl;
 
 	// This uses our hard-coded detector (for 64x128)
-	hog.setSVMDetector(hog.getBOSSPeopleDetector());
-	cout << "**** using default BOSS detector *****" << endl;
+	// hog.setSVMDetector(hog.getBOSSPeopleDetector());
+	// cout << "**** using default BOSS detector *****" << endl;
 
 	// This uses what we read from the XML file
-	//hog.setSVMDetector (support_vector);
-	//cout << "**** Using model from file *****" << endl;
+	hog.setSVMDetector (support_vector);
+	cout << "**** Using model from file *****" << endl;
 
 	cout << "Process Video '" << VideoFileName << "'\n";
 	// Try to open the file
@@ -120,7 +122,7 @@ int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
 	int frame_ms = 1000/vc.get(CV_CAP_PROP_FPS);
  	cout << "FPS: " << vc.get(CV_CAP_PROP_FPS) << " ms: " << frame_ms << endl;
  	cout << "Input codec type: " << EXT << endl;
-	pause ("We will now start the video process");
+	hard_pause ("We will now start the video process");
 	
 	// ******************* Process the video ***********************************
 	// create a window for display
