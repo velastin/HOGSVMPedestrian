@@ -30,14 +30,9 @@ using namespace std;
 #define SVM_CPARAMETER 2.0
 #define SVM_GPARAMETER 0.125
 #else
-#define SVM_CPARAMETER 4.44089209850063E-16	// 0.002		// see Miguel Jara's thesis, chapter 4, Fig. 4.1
+#define SVM_CPARAMETER 0.002	// 0.002		// see Miguel Jara's thesis, chapter 4, Fig. 4.1
 #define SVM_GPARAMETER 0.125		// this should not matter
 #endif
-
-
-// Dimentions of normalised samples (for BOSS, data is already resized to this)
-// #define WIDTH 64
-// #define HEIGHT 128
 
 
 void displayUsage(){
@@ -72,8 +67,13 @@ int SVMTrain (DataDescriptors &data,
 
 	// SVM parameters
 	CvSVMParams params; // default constructor: RBF
-    	params.C = CParameter;
+    params.svm_type    = CvSVM::C_SVC;
+    params.C = CParameter;
 	params.gamma = GammaParameter;
+
+	// This is as set by M Jara
+    params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 1000000, FLT_EPSILON);
+
 
 #ifndef TRAIN_SVM_RBF
    	params.kernel_type = CvSVM::LINEAR; // remove for RBF
@@ -119,7 +119,7 @@ int SVMTrain (DataDescriptors &data,
 //*******************************************************************************************
 int main( int argc, char** argv ) {
 	char opt;
-	string data_path, svm_path;
+	string data_path="", svm_path="", hard_path="";
 //	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
 
 #ifdef TRAIN_SVM_RBF
@@ -135,7 +135,7 @@ int main( int argc, char** argv ) {
 	}
 
 	// Deal with the command line, see http://linux.die.net/man/3/optarg for handling commands
-	while((opt = getopt(argc, argv, ":d:s:")) != -1){
+	while((opt = getopt(argc, argv, ":d:s:h:w:")) != -1){
 		switch(opt){
 			case 'd':
 			data_path = optarg;
@@ -143,7 +143,10 @@ int main( int argc, char** argv ) {
 			case 's':
 			svm_path = optarg;
 			break;
-			case '?':  // ***SAV not sure why "?" in particular
+			case 'h':
+				hard_path= optarg;
+				break;
+			case '?':  
 			cerr << "Invalid option:  '" << char(optopt) << "' doesn't exist." << endl << endl;
 			displayUsage();
 			exit(1);
