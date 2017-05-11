@@ -54,7 +54,7 @@ vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0)
 // VideoFilename:	Full path for video file
 // SVM_FullFile:	Full path of SVM model file
 // VideoFile:		Name to be used for the video window
-int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
+int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_file, string VideoFile)
 {	LinearSVM SVM;		// will hold the model
 	vector<float> support_vector;
 	
@@ -84,20 +84,20 @@ int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
 	s_vector.clear();
 	s_vector = hog.getBOSSPeopleDetector();
 	cout << "size 64x128 BOSS " << s_vector.size() << endl;		// BOSS default
-	cout << "size support " << support_vector.size() << endl;	// the model we have read
+	cout << "From file size support " << support_vector.size() << endl;	// the model we have read
 	pause ("press me");
 	
 	// This uses OpenCV's default detector (for 64x128)
-	 //hog.setSVMDetector(hog.getDefaultPeopleDetector());
-	 //cout << "*** using default HOG detector 64x128 ****" << endl;
+	// hog.setSVMDetector(hog.getDefaultPeopleDetector());
+	// cout << "*** using default HOG detector 64x128 ****" << endl;
 
 	// This uses our hard-coded detector (for 64x128)
 	// hog.setSVMDetector(hog.getBOSSPeopleDetector());
 	// cout << "**** using default BOSS detector *****" << endl;
 
 	// This uses what we read from the XML file
-	hog.setSVMDetector (support_vector);
-	cout << "**** Using model from file *****" << endl;
+	 hog.setSVMDetector (support_vector);
+	 cout << "**** Using model from file *****" << endl;
 
 	cout << "Process Video '" << VideoFileName << "'\n";
 	// Try to open the file
@@ -126,6 +126,7 @@ int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
 	
 	// ******************* Process the video ***********************************
 	// create a window for display
+	Rect r;
 	namedWindow(VideoFile.c_str() , CV_WINDOW_NORMAL | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
     for (int frame=0; frame < total_frames; frame++) {
 		Mat imageColor;
@@ -142,10 +143,11 @@ int Process_Video (string VideoFileName, string SVM_FullFile, string VideoFile)
 //		ShowBar(fame*100/(total_frames-1),50);  
 		found = detector(hog, imageGray, scale0); // the detector
 		for(int i = 0; i < found.size(); i++ ){
-			Rect r = found[i];
+			r = found[i];
 			cout << frame << "," << "1," << r.x << "," << r.y << "," << r.width
 				<< "," << r.height << endl; 
 			rectangle(imageColor, r, cv::Scalar(0,0,255), 1); // draw the rectagle on the image
+    		results_file << frame << ",1," << r.x << "," << r.y << "," << r.width << "," << r.height << endl; 
 		}
 		imshow(VideoFile.c_str(), imageColor);  // show the image
 
@@ -165,12 +167,13 @@ void displayUsage(){
 	cout << "./Detection -s path -v path" << endl;
 	cout << "-s path: path (no trailing /) to find SVM model file" << endl;  
 	cout << "-i path: path (no trailing /) to find original input video" << endl;
+	cout << "-r file: file where to save output results (detections)\n";
 }
 
 // *********************************************************************
 int main( int argc, char** argv ) {
 	char opt;
-	string svm_path, in_video_path;
+	string svm_path, in_video_path, results_file;
 	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
 
 
@@ -181,13 +184,16 @@ int main( int argc, char** argv ) {
 	}
 
 	// Deal with the command line, see http://linux.die.net/man/3/optarg for handling commands
-	while((opt = getopt(argc, argv, ":s:i:")) != -1){
+	while((opt = getopt(argc, argv, ":s:i:r:")) != -1){
 		switch(opt){
 			case 's':
 			svm_path = optarg;
 			break;
 			case 'i':
 			in_video_path = optarg;
+			break;
+			case 'r':
+			results_file = optarg;
 			break;
 			case '?':  // ***SAV not sure why "?" in particular
 			cerr << "Invalid option:  '" << char(optopt) << "' doesn't exist." << endl << endl;
@@ -200,13 +206,24 @@ int main( int argc, char** argv ) {
 		}
 	}
 
-	cout << "SVM model on '" << svm_path << "', Video on '" << in_video_path << endl;
+	cout << "SVM model on '" << svm_path << "\nVideo on '" << in_video_path << "'\nresults on '" << results_file << "'\n";
 	if (svm_path == "") { cout << "Hey! svm file name empty\n"; return 2; }
 	if (in_video_path == "") { cout << "Hey! input video file name empty\n"; return 2; }
-
+	if (results_file == "") { cout << "Hey! results file name empty\n"; return 2; }
 
 	pause("\nOk, we have the directory entries, so we proceed");
-	Process_Video (in_video_path, svm_path, "Video");
+/*	string results_path=results_file.substr(0,results_file.find_last_of("/"));
 
+	struct stat st = {0};
+	if (stat(results_path.c_str(), &st) == -1) { // if directory does not exist then create it
+	    mkdir(results_path.c_str(), 0700);
+	}
+*/
+    ofstream data_results(results_file.c_str()); // TODO: check if opened ok
+	data_results << in_video_path << " " << svm_path << endl;
+	data_results << "Frame,Class,x,y,w,h" << endl;
+
+	Process_Video (in_video_path, svm_path, data_results, "Video");
+	data_results.close();
 	return 0;
 }

@@ -17,7 +17,7 @@ target_link_libraries (Detection ${OpenCV_LIBS})
 target_link_libraries (DetectionSingle ${OpenCV_LIBS})
 target_link_libraries (Classify ${OpenCV_LIBS})
 
-set_target_properties (Descriptors PROPERTIES COMPILE_DEFINITIONS "ENABLEPAUSENOT;CHANGELABELSNOT;TRAIN_SVM_RBF")
+set_target_properties (Descriptors PROPERTIES COMPILE_DEFINITIONS "ENABLEPAUSENOT;CHANGELABELSNOT;TRAIN_SVM_LINEAR")
 set_target_properties (TrainLOO PROPERTIES COMPILE_DEFINITIONS "ENABLEPAUSENOT;CHANGELABELSNOT;TRAIN_SVM_LINEAR")
 set_target_properties (Classify PROPERTIES COMPILE_DEFINITIONS "ENABLEPAUSENOT;CHANGELABELSNOT")
 set_target_properties (Detection PROPERTIES COMPILE_DEFINITIONS "ENABLEPAUSE")
