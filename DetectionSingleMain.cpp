@@ -21,9 +21,6 @@ using namespace std;
 
 #define SVM_SUFFIX "-SVM.xml"
 #define VIDEO_SUFFIX ".avi"
-#define GT_SAMPLE_RATE 8	// one out of these many frames in the ground truth
-
-//#define DATA_SUFFIX "-DESC.dat"
 
 // Dimentions of normalised samples (for BOSS, data is already resized to this)
 // Jan 2017: adapted for UANDES dataset
@@ -53,8 +50,11 @@ vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0)
 // Processes a video file given an SVM model
 // VideoFilename:	Full path for video file
 // SVM_FullFile:	Full path of SVM model file
+// results_file:	Where to write the resulting detections
 // VideoFile:		Name to be used for the video window
-int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_file, string VideoFile)
+// OutVideoFile:	Name of output video file
+// 
+int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_file, string VideoFile, string OutVideoFile)
 {	LinearSVM SVM;		// will hold the model
 	vector<float> support_vector;
 	
@@ -73,9 +73,6 @@ int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_
 	double scale0 = 1.05;	// needed by hog detector
 
 	// construct a hog (detector) object
-//	HOGDescriptor hog (Train_Size, block_size, block_stride, cell_size, nbins, 
-//			-1, 0.2, true, 64);
-//	HOGDescriptor hog;
 	BOSSHog hog (Train_Size, block_size, block_stride, cell_size, nbins);
 
 	// Mainly historical, we output different possible detector sizes on screen
@@ -122,6 +119,14 @@ int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_
 	int frame_ms = 1000/vc.get(CV_CAP_PROP_FPS);
  	cout << "FPS: " << vc.get(CV_CAP_PROP_FPS) << " ms: " << frame_ms << endl;
  	cout << "Input codec type: " << EXT << endl;
+
+	// Now try to open an output video file with same properties as the input video file
+	VideoWriter outvideofile (OutVideoFile, CV_FOURCC('P','I','M','1'), 25, S);	
+	if (!outvideofile.isOpened())
+	{   hard_pause ("!!! Output video could not be opened");
+		// but we carry on ...
+	}
+
 	hard_pause ("We will now start the video process");
 	
 	// ******************* Process the video ***********************************
@@ -150,6 +155,9 @@ int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_
     		results_file << frame << ",1," << r.x << "," << r.y << "," << r.width << "," << r.height << endl; 
 		}
 		imshow(VideoFile.c_str(), imageColor);  // show the image
+		if (outvideofile.isOpened()) {
+			outvideofile.write(imageColor);
+		}
 
 		// TODO: metrics and generate output
 		// ...
@@ -159,32 +167,34 @@ int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_
 	} // we loop until no more frames to process
 	destroyWindow(VideoFile.c_str());
 	// TODO output some statistics, write results somewhere...
+	outvideofile.release();
 	return 0; // success
 }
 
 // ********************************************************************
 void displayUsage(){
-	cout << "./Detection -s path -v path" << endl;
-	cout << "-s path: path (no trailing /) to find SVM model file" << endl;  
-	cout << "-i path: path (no trailing /) to find original input video" << endl;
-	cout << "-r file: file where to save output results (detections)\n";
+	cout << "./Detection -s SVMfile -i inputvideo -r results -o outputvideo" << endl;
+	cout << "-s file: SVM model file" << endl;  
+	cout << "-i file: original input video" << endl;
+	cout << "-r file: where to save output results (detections)\n";
+	cout << "-o file: where to save the output video\n";
 }
 
 // *********************************************************************
 int main( int argc, char** argv ) {
 	char opt;
-	string svm_path, in_video_path, results_file;
+	string svm_path, in_video_path, results_file, out_video_path;
 	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing
 
 
-	if(argc < 5){
+	if(argc < 9){
 		cerr << "Missing arguments" << endl;
 		displayUsage();
 		return -1;
 	}
 
 	// Deal with the command line, see http://linux.die.net/man/3/optarg for handling commands
-	while((opt = getopt(argc, argv, ":s:i:r:")) != -1){
+	while((opt = getopt(argc, argv, "s:i:r:o:")) != -1){
 		switch(opt){
 			case 's':
 			svm_path = optarg;
@@ -194,6 +204,9 @@ int main( int argc, char** argv ) {
 			break;
 			case 'r':
 			results_file = optarg;
+			break;
+			case 'o':
+			out_video_path = optarg;
 			break;
 			case '?':  // ***SAV not sure why "?" in particular
 			cerr << "Invalid option:  '" << char(optopt) << "' doesn't exist." << endl << endl;
@@ -206,10 +219,12 @@ int main( int argc, char** argv ) {
 		}
 	}
 
-	cout << "SVM model on '" << svm_path << "\nVideo on '" << in_video_path << "'\nresults on '" << results_file << "'\n";
+	cout << "SVM model on '" << svm_path << "\nVideo on '" << in_video_path << "'\nresults on '" << 
+		results_file << "' video file '" << out_video_path << "'\n";
 	if (svm_path == "") { cout << "Hey! svm file name empty\n"; return 2; }
 	if (in_video_path == "") { cout << "Hey! input video file name empty\n"; return 2; }
 	if (results_file == "") { cout << "Hey! results file name empty\n"; return 2; }
+	if (out_video_path == "") { cout << "Hey! output video file name empty\n"; return 2; }
 
 	pause("\nOk, we have the directory entries, so we proceed");
 /*	string results_path=results_file.substr(0,results_file.find_last_of("/"));
@@ -223,7 +238,7 @@ int main( int argc, char** argv ) {
 	data_results << in_video_path << " " << svm_path << endl;
 	data_results << "Frame,Class,x,y,w,h" << endl;
 
-	Process_Video (in_video_path, svm_path, data_results, "Video");
+	Process_Video (in_video_path, svm_path, data_results, "Video", out_video_path);
 	data_results.close();
 	return 0;
 }

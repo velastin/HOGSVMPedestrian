@@ -15,23 +15,18 @@
 #include "functions.hpp"
 #include "tool.hpp"
 
-//This program gets positives and negatives samples from videos.
+// This program creates text files from Viper GT files
 
-using namespace cv;
+//using namespace cv;
 using namespace std;
 
 #define PERCENTAGE 0.1 //Margin added to each direction
 
-// ***SAV dimentions of normalised samples
-#define WIDTH 128
-#define HEIGHT 256
-
 // ***SAV added this to define extension of output files
-#define SAMPLEFILEEXT ".png"
 #define OUTFILEEXT ".csv"
 
 // and this defines the 1 in X frames chosen in the ground truth
-#define FRAMEREDUCTION 8
+#define FRAMEREDUCTION 1 // 8
 
 //Information about how to use program.
 // In this version we only output to the screen ... so -o path is ignored
