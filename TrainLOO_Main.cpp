@@ -14,8 +14,16 @@
 #include "tool.hpp"
 //#include "createDescriptors.hpp"
 
+#if CV_MAJOR_VERSION >= 3
+#include <opencv2/ml.hpp>
+#endif
+
 using namespace cv;
 using namespace std;
+#if CV_MAJOR_VERSION >= 3
+using namespace cv::ml;
+#endif
+
 
 #define SVM_SUFFIX "-SVM.xml"
 #define DATA_SUFFIX "-DESC.dat"
@@ -66,6 +74,22 @@ int SVMTrain (DataDescriptors &data,
 	}
 
 	// SVM parameters
+
+#if CV_MAJOR_VERSION >= 3
+	Ptr<SVM> svm = SVM::create();	// create an SVM classifier with defaults
+	svm->setType(SVM::C_SVC);		// binary classifier 
+#ifndef TRAIN_SVM_RBF
+	svm->setKernel(SVM::LINEAR);	// Linear
+	cout << "Will train with a linear model\n";
+#else
+	svm->setKernel(SVM::RBF);
+	cout << "Will train with an RBF model\n";
+	TermCriteria termC (COUNT+EPS, 1000000, FLT_EPSILON);
+	svm->setTermCriteria (termC);
+#endif
+
+// *****************************  Versions prior to 3.x **********************
+#else
 	CvSVMParams params; // default constructor: RBF
     params.svm_type    = CvSVM::C_SVC;
     params.C = CParameter;
@@ -74,15 +98,15 @@ int SVMTrain (DataDescriptors &data,
 	// This is as set by M Jara
     params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 1000000, FLT_EPSILON);
 
-
 #ifndef TRAIN_SVM_RBF
    	params.kernel_type = CvSVM::LINEAR; // remove for RBF
 	cout << "Training linear SVM, please wait ..." << endl;
 #else
 	cout << "Training RBF SVM, please wait ..." << endl;
 #endif
+#endif // prior to 3.x
 
-	  Size oldlabelsSize = data.labels.size();
+	  	Size oldlabelsSize = data.labels.size();
 		Size olddescriptorsSize = data.descriptors.size();
 		cout << "Result data labels " << oldlabelsSize.height << " x " << oldlabelsSize.width << endl;
 		cout << "Result Descriptors " << olddescriptorsSize.height << " x " << olddescriptorsSize.width << endl;
@@ -97,9 +121,15 @@ int SVMTrain (DataDescriptors &data,
 */
 
     pause("Tis gonna take a loooong time ..");
-
+#if CV_MAJOR_VERSION >= 3
+	// Hopefully this does not eat up memory?
+	// Define the data used to fine tune the SVM
+	Ptr<TrainData> Tdata = TrainData::create(data.descriptors, ROW_SAMPLE, data.labels);
+	svm->train (Tdata, ROW_SAMPLE);
+#else
     CvSVM SVM;
     SVM.train(data.descriptors, data.labels, Mat(), Mat(), params);
+#endif
 
     cout << "Successful training" << endl;
 
@@ -107,7 +137,11 @@ int SVMTrain (DataDescriptors &data,
     modelPath << modelFolderPath << "/" << modelFileName;
 
     cout << "Saving SVM in " << modelPath.str() << endl;
+#if CV_MAJOR_VERSION >= 3
+	svm->save(modelPath.str().c_str());
+#else
     SVM.save(modelPath.str().c_str());
+#endif
     cout << "COMPLETED SUCCESSFULLY" << endl;
 
     return 0;

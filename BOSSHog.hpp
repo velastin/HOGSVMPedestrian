@@ -12,7 +12,12 @@
 #include <opencv2/opencv.hpp>
 
 #include <vector>
+
+#if CV_MAJOR_VERSION >= 3
+#include <opencv2/objdetect.hpp>
+#else
 #include <opencv2/ocl/ocl.hpp>
+#endif
 
 using namespace cv;
 using namespace std;

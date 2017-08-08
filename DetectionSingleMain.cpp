@@ -9,6 +9,11 @@
 #include <deque>
 #include <vector>
 #include <fstream>
+
+#if CV_MAJOR_VERSION >= 3
+#include <opencv2/ml.hpp>
+#endif
+
 #include <sstream>
 #include <algorithm>
 #include <cmath>
@@ -18,6 +23,9 @@
 
 using namespace cv;
 using namespace std;
+#if CV_MAJOR_VERSION >= 3
+using namespace cv::ml;
+#endif
 
 #define SVM_SUFFIX "-SVM.xml"
 #define VIDEO_SUFFIX ".avi"
@@ -54,14 +62,29 @@ vector <Rect> detector(BOSSHog &hog, Mat imageGray, double scale0)
 // VideoFile:		Name to be used for the video window
 // OutVideoFile:	Name of output video file
 // 
-int Process_Video (string VideoFileName, string SVM_FullFile, ofstream &results_file, string VideoFile, string OutVideoFile)
-{	LinearSVM SVM;		// will hold the model
+int Process_Video (string VideoFileName, string SVM_fullfile, ofstream &results_file, string VideoFile, string OutVideoFile)
+{	
+#if CV_MAJOR_VERSION >= 3
+	Ptr<SVM> svm;
+#else
+	LinearSVM SVM;
+	LinearSVM* svm=&SVM;
+#endif
 	vector<float> support_vector;
 	
-	cout << "SVM model file on '" << SVM_FullFile << "'\n";
-	SVM.load(SVM_FullFile.c_str());  // TODO: need to check if successful
+	cout << "SVM model file on '" << SVM_fullfile << "'\n";
+#if CV_MAJOR_VERSION >= 3
+	svm = StatModel::load<SVM>(SVM_fullfile.c_str());  // TODO: need to check if successful
+#else	
+	SVM.load(SVM_fullfile.c_str());  // TODO: need to check if successful
+#endif
 	pause ("SVM model file loaded");
+
+#if CV_MAJOR_VERSION >= 3
+	get_svm_detector(svm, support_vector); // TODO: need to check if successful
+#else
 	support_vector = SVM.getSupportVector(); // TODO: need to check if successful
+#endif
 	pause ("SVM support vector loaded");
 
 	// Define the HOG detector

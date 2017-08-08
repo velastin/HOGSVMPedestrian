@@ -12,11 +12,19 @@
 #include <algorithm>
 #include <cmath>
 
+#if CV_MAJOR_VERSION >= 3
+#include <opencv2/ml.hpp>
+#endif
+
+
 #include "tool.hpp"
 //#include "createDescriptors.hpp"
 
 using namespace cv;
 using namespace std;
+#if CV_MAJOR_VERSION >= 3
+using namespace cv::ml;
+#endif
 
 #define SVM_SUFFIX "-SVM.xml"
 #define DATA_SUFFIX "-DESC.dat"
@@ -52,26 +60,52 @@ int SVMTrain (DataDescriptors &data,
 
 {	string results_path=modelFileName.substr(0,modelFileName.find_last_of("/"));
 
+
+#if CV_MAJOR_VERSION >= 3
+	Ptr<SVM> svm = SVM::create();	// create an SVM classifier with defaults
+	svm->setType(SVM::C_SVC);		// binary classifier 
+#ifndef TRAIN_SVM_RBF
+	svm->setKernel(SVM::LINEAR);	// Linear
+	cout << "Will train with a linear model\n";
+#else
+	svm->setKernel(SVM::RBF);
+	cout << "Will train with an RBF model\n";
+#endif
+	// Hopefully this does not eat up memory?
+	// Define the data used to fine tune the SVM
+	Ptr<TrainData> Tdata = TrainData::create(data.descriptors, ROW_SAMPLE, data.labels);
+#else // for version prior to 3
     CvSVM SVM; // construct a default SVM (RBF ...)
 	CvSVMParams params;  // a set of parameters
 	params = SVM.get_params();	// we make sure we have a complete definition of all params
 
 #ifndef TRAIN_SVM_RBF
-	params.kernel_type = CvSVM::LINEAR; // The linear case
+	params.kernel_type = 	CvSVM::LINEAR; // The linear case
 	cout << "Will train with a linear model\n";
 #else
 	cout << "Will train with an RBF model\n";
 #endif
+#endif
 
+#if CV_MAJOR_VERSION >= 3
+	ParamGrid CvParamGrid_C(CGRID_START, CGRID_END, CGRID_STEP);
+	ParamGrid CvParamGrid_gamma(GGRID_START, GGRID_END, GGRID_STEP); // if linear, it does not matter
+	cout << "Grid Start " << CvParamGrid_C.minVal << " End " << CvParamGrid_C.maxVal << " Step " << CvParamGrid_C.logStep << endl;
+#else
 	CvParamGrid CvParamGrid_C(CGRID_START, CGRID_END, CGRID_STEP);
-	cout << "Grid Start " << CvParamGrid_C.min_val << " End " << CvParamGrid_C.max_val << " Step " << CvParamGrid_C.step << endl;
+	CvParamGrid CvParamGrid_gamma(GGRID_START, GGRID_END, GGRID_STEP); // if linear, it does not matter
+	cout << "Grid Start " << CvParamGrid_C.min_val << " End " << CvParamGrid_C.max_val << " Step " << CvParamGrid_C.step<<endl;
+ #endif
 	hard_pause("that is the C Grid");
 
-	CvParamGrid CvParamGrid_gamma(GGRID_START, GGRID_END, GGRID_STEP); // if linear, it does not matter
+#if CV_MAJOR_VERSION >= 3
+#else
+// OpenCV 3.1 does not have this
 	if (!CvParamGrid_C.check() || !CvParamGrid_gamma.check()) {
     	cout<<"The grid is NOT VALID."<<endl;
 		return 1;
 	}
+#endif
 
 	// If output path does not exist, then create it
     struct stat st = {0};
@@ -87,29 +121,54 @@ int SVMTrain (DataDescriptors &data,
 
 	begin = clock();
 
+//TODO: harmonise SVM and svm
 #ifdef TRAIN_SVM_RBF
 // RBF case
+#if CV_MAJOR_VERSION >= 3
+//TODO: *** check this!
+	svm->trainAuto(Tdata, 10, CvParamGrid_C,SVM::getDefaultGrid(SVM::GAMMA),
+	 SVM::getDefaultGrid(SVM::P),
+	 SVM::getDefaultGrid(SVM::NU),
+	 SVM::getDefaultGrid(SVM::COEF), SVM::getDefaultGrid(SVM::DEGREE), true);
+#else
 	SVM.train_auto(data.descriptors, data.labels, Mat(), Mat(), params,10, CvParamGrid_C,
 	 CvParamGrid_gamma, CvSVM::get_default_grid(CvSVM::P), CvSVM::get_default_grid(CvSVM::NU),
 	 CvSVM::get_default_grid(CvSVM::COEF), CvSVM::get_default_grid(CvSVM::DEGREE), true);
+#endif
 #else
 // Linear case
+#if CV_MAJOR_VERSION >= 3
+	svm->trainAuto(Tdata, 10, CvParamGrid_C,SVM::getDefaultGrid(SVM::GAMMA),
+	 SVM::getDefaultGrid(SVM::P),
+	 SVM::getDefaultGrid(SVM::NU),
+	 SVM::getDefaultGrid(SVM::COEF), SVM::getDefaultGrid(SVM::DEGREE), true);
+#else
 	SVM.train_auto(data.descriptors, data.labels, Mat(), Mat(), params,10, CvParamGrid_C,
 	 CvSVM::get_default_grid(CvSVM::GAMMA), CvSVM::get_default_grid(CvSVM::P),
 	 CvSVM::get_default_grid(CvSVM::NU),
 	 CvSVM::get_default_grid(CvSVM::COEF), CvSVM::get_default_grid(CvSVM::DEGREE), true);
 #endif
+#endif
 
 	end = clock();
 	elapsed = double(end - begin) / CLOCKS_PER_SEC;
 
+#if CV_MAJOR_VERSION >= 3
+	cout<<"gamma: "<< svm->getGamma() << endl;
+	cout<<"C: "<< svm->getC() << endl;
+#else
 	params= SVM.get_params();
 	cout<<"gamma: "<<params.gamma<<endl;
 	cout<<"C: "<<params.C<<endl;
+#endif
 	cout<<"Time elapsed (secs): " << elapsed << " (" << int(elapsed/60) << " mins)\n";	
 	string SVMFile=results_path+SVM_SUFFIX;
     cout << "Saving SVM in " << SVMFile << endl;
+#if CV_MAJOR_VERSION >= 3
+    svm->save(SVMFile.c_str());
+#else
     SVM.save(SVMFile.c_str());
+#endif
     cout << "COMPLETED SUCCESSFULLY" << endl;
 
     return 0;
@@ -123,6 +182,11 @@ int main( int argc, char** argv ) {
 	char opt;
 	string data_path, svm_path;
 //	Size data_size = Size(WIDTH,HEIGHT);  // this is the image dimensions to which the samples need resizing *** Not needed
+
+hard_pause("waiting for you");
+    printf("%s\r\n", CV_VERSION);
+    printf("%u:%u:%u\r\n", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
+
 
 #ifdef TRAIN_SVM_RBF
 	hard_pause("I will be using SVM RBF");

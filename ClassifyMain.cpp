@@ -20,6 +20,10 @@
 #include <vector>
 #include <fstream>
 
+#if CV_MAJOR_VERSION >= 3
+#include <opencv2/ml.hpp>
+#endif
+
 #include <sstream>
 
 #include <algorithm>
@@ -30,6 +34,10 @@
 
 using namespace cv;
 using namespace std;
+
+#if CV_MAJOR_VERSION >= 3
+using namespace cv::ml;
+#endif
 
 // if we are using "negative logic" for positives and negatives
 #ifdef CHANGELABELS
@@ -84,7 +92,12 @@ void TMeanValues::add_sample (double sample) {
 //	-1: negative
 // 	0: something did not quite work!
 
-int Process_Image (LinearSVM &SVM, string folderpath, string image_file, int expected, Size resizeSize, double &confidence)
+#if CV_MAJOR_VERSION >= 3
+int Process_Image (Ptr<SVM> SVM, string folderpath, string image_file, int expected, Size resizeSize, double &confidence)
+#else
+int Process_Image (LinearSVM *SVM, string folderpath, string image_file, int expected, Size resizeSize, double &confidence)
+#endif
+
 {	Mat image;
 	Mat imageGray;
 	Mat resizeImage;
@@ -125,9 +138,11 @@ int Process_Image (LinearSVM &SVM, string folderpath, string image_file, int exp
 		descriptorMat.at<float>(0,i) = descriptor [i];
 	}
 	// Now see what the SVM makes of it
-	int valueDF;	
-	confidence=SVM.predict(descriptorMat, true);
-	valueDF = SVM.predict(descriptorMat); // should return the class label
+	int valueDF;
+	Mat conf;	
+    SVM->predict(descriptorMat, conf, StatModel::RAW_OUTPUT);
+	confidence = conf.at<float>(0,0);
+	valueDF = SVM->predict(descriptorMat); // should return the class label
 	cout << valueDF << "(" << confidence << ") Expected: " << expected;
 	if (valueDF != expected) cout << " *** wrong!!!";
 	cout << endl;
@@ -141,14 +156,29 @@ void Process_Data (string SVM_fullfile, string basename, string pos_path,
 		<< "' Pos path: " << pos_path << "' Neg path: '" << neg_path << "'\n";
 	results_file << basename << ",";	// start results line
 
+//TODO: It might be more elegant to modify LinearSVM and make this code the same for 3.x and 2.x
 	// we now load the SVM
+#if CV_MAJOR_VERSION >= 3
+	Ptr<SVM> svm;
+#else
 	LinearSVM SVM;
+	LinearSVM* svm=&SVM;
+#endif
 	Size resize= Size(WIDTH, HEIGHT);
 	vector<float> support_vector;
-	
+
+#if CV_MAJOR_VERSION >= 3
+	svm = StatModel::load<SVM>(SVM_fullfile.c_str());  // TODO: need to check if successful
+#else	
 	SVM.load(SVM_fullfile.c_str());  // TODO: need to check if successful
+#endif
 	pause ("SVM model file loaded");
+
+#if CV_MAJOR_VERSION >= 3
+	get_svm_detector(svm, support_vector); // TODO: need to check if successful
+#else
 	support_vector = SVM.getSupportVector(); // TODO: need to check if successful
+#endif
 	cout << "Support vector size: " << support_vector.size() << endl;
 	pause ("SVM support vector loaded");
 
@@ -162,7 +192,7 @@ void Process_Data (string SVM_fullfile, string basename, string pos_path,
 	for (int i= 0; i<Files.size(); i++) {
 	  double confidence;
 		cout << "'" << Files[i] << "'\n";
-		switch (Process_Image (SVM, Directory, Files[i], NEG_LABEL, resize, confidence)) {
+		switch (Process_Image (svm, Directory, Files[i], NEG_LABEL, resize, confidence)) {
 			case 0: // there was a problem, ignore
 			break;
 			case NEG_LABEL: // a true negative
@@ -192,7 +222,7 @@ void Process_Data (string SVM_fullfile, string basename, string pos_path,
 	for (int i= 0; i<Files.size(); i++) {
 	  double confidence;
 		cout << "'" << Files[i] << "'\n";
-		switch (Process_Image (SVM, Directory, Files[i], POS_LABEL, resize, confidence)) {
+		switch (Process_Image (svm, Directory, Files[i], POS_LABEL, resize, confidence)) {
 			case 0: // there was a problem, ignore
 			break;
 			case NEG_LABEL: // a false negative
